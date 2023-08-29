@@ -1,4 +1,11 @@
-﻿# Uninstallation
+# Deployment command: powershell.exe -executionpolicy Bypass -Command "& { & '.\Remove-Dameware.ps1'; Exit $LastExitCode }"
+# Stop Service
+$serviceList = Get-Service |  Where-Object {$_.DisplayName -Match "DameWare"}
+if ($serviceList.Count -ne 0 ){
+    $serviceList | Set-Service -Status Stopped -ErrorAction Ignore
+}
+
+# Uninstallation
 $toUninstall = Get-ChildItem -Path HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall, HKLM:\SOFTWARE\Wow6432Node\Microsoft\Windows\CurrentVersion\Uninstall | Get-ItemProperty | Where-Object {$_.DisplayName -match "DameWare" } | Select-Object -Property DisplayName, UninstallString
 foreach ($installedApp in $toUninstall) {
     $uninstallString = (($installedApp.UninstallString -split ' ')[1] -replace '/I','/X') + ' /qn /norestart'
