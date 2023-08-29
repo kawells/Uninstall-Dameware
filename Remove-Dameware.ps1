@@ -1,4 +1,6 @@
 # Deployment command: powershell.exe -executionpolicy Bypass -Command "& { & '.\Remove-Dameware.ps1'; Exit $LastExitCode }"
+$damewarePath = "C:\Windows\dwrcs\"
+
 # Stop Service
 $serviceList = Get-Service |  Where-Object {$_.DisplayName -Match "DameWare"}
 if ($serviceList.Count -ne 0 ){
@@ -13,17 +15,38 @@ foreach ($installedApp in $toUninstall) {
 }
 
 # Uninstallation detection
-$testPaths = "C:\Windows\dwrcs\DWRCS.exe","C:\Program Files\SolarWinds\Dameware Mini Remote Control\DWRCC.exe","C:\Program Files\SolarWinds\Dameware Mini Remote Control x64\DWRCC.exe"
-$installed = $false
-ForEach ($path in $testPaths) {
-    If (Test-Path $path) {
-        $installed = $true
+Function Test-DamewarePaths {
+    $testPaths = "C:\Windows\dwrcs\DWRCS.exe","C:\Program Files\SolarWinds\Dameware Mini Remote Control\DWRCC.exe","C:\Program Files\SolarWinds\Dameware Mini Remote Control x64\DWRCC.exe"
+    ForEach ($path in $testPaths) {
+        If (Test-Path $path) { Return $true }
+        Else { Return $false }
     }
 }
-If ($installed) {
-    # Still installed
+
+# Manual removal
+If (Test-DamewarePaths) {
+    # Still installed, manual removal
+    $preRemovalService = Get-Service | Where-Object {$_.DisplayName -Match "DameWare"}
+    sc.exe delete $preRemovalService.Name
+    $postRemovalService = Get-Service | Where-Object {$_.DisplayName -Match "DameWare"}
+    # Service removal success
+    If ($postRemovalService.Count -eq 0) {
+        # If files still exist, remove them
+        If (Test-Path $damewarePath) {
+            Remove-Item $damewarePath -Force -Recurse -ErrorAction SilentlyContinue
+        }
+    }
+    Else {
+        # Service removal failure
+    }
+}
+
+# Final detection
+If (Test-DamewarePaths) {
+
 }
 Else {
     Write-Host "Uninstalled"
 }
+
 Exit $LASTEXITCODE
